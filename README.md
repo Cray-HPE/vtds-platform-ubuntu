@@ -1,18 +1,20 @@
 # vtds-platform-common
-The common vTDS Platform layer plugin
-## Description
-This repository provides an implementation of the vTDS Platform layer that should
-be usable in most vTDS configurations to provide a set of Virtual Blades, external
-network connections, and Blade Interconnect networks on which to build a vTDS cluster.
-The contents include an implementation of the Platform API and a base configuration. The
-Platform API implementation will run on any Provider layer implementation and manage the
-configured set of Virtual Blades. The base configuration can be used unchanged to build
-a platform consisting of an application specified number of Virtual Blade hosts running
-Ubuntu linux and interconnected by an application specified set of Blade Interconnect
-networks. User supplied configuration overlays can alter that configuration as needed.
-Configuration of things like Virtual Blades, Virtual Nodes, Blade Interconnect networks
-and Virtual Node Interconnect networks and so forth are driven by layers above this in
-the vTDS architecture.
 
-The core driver mechanism and a brief introduction to the vTDS architecture and concepts
-can be found in the [vTDS Core Project Repository](https://github.com/Cray-HPE/vtds-core/tree/main).
+The common platform layer implementation for vTDS allowing a vTDS cluster
+to be built as a GCP project.
+
+## Description This repo provides the code and a base configuration to
+deploy the pplatform layer of a Virtual Test and Development System (vTDS) cluster
+
+Each platform implementation contains implementation specific code and
+a fully defined base configuration capable of deploying the platform
+resources of the cluster. The base configuration here, if used
+unchanged, defines the resources needed to construct a vTDS platform
+consisting of Ubuntu based linux VMs connected across the provider's
+network using virtual layer 2 networks encapsulated across the
+provider's IP interconnect.
+
+The core driver mechanism and a brief introduction to the vTDS
+architecture and concepts can be found in the [vTDS Core Project
+Repository](https://github.com/Cray-HPE/vtds-core/tree/main).
+
