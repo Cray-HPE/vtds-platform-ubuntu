@@ -20,9 +20,9 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-"""Public API for the GCP provider layer base configuration data, this
-gives callers access to the Provider's BaseConfig API and prevents
-them from seeing the private GCP specific implementation of the API.
+"""Public API for the common platform layer base configuration data, this
+gives callers access to the Platform's BaseConfig API and prevents
+them from seeing the private implementation of the API.
 
 """
 
@@ -31,7 +31,7 @@ from .private.config import PrivateBaseConfig
 
 class BaseConfig:
     """BaseConfig class presents operations on the base configuration
-    of the provider layer to callers.
+    of the platform layer to callers.
 
     """
     def __init__(self):
@@ -41,7 +41,7 @@ class BaseConfig:
         self.private = PrivateBaseConfig()
 
     def get_base_config(self):
-        """Retrieve the base configuration for the provider in the
+        """Retrieve the base configuration for the platform in the
         form of a python data structure for use in composing and
         overall vTDS configuration.
 
@@ -59,7 +59,7 @@ class BaseConfig:
     def get_test_overlay(self):
         """Retrieve a pre-defined test overlay configuration in the
         form of a python data structure for use in composing vTDS
-        configurations for testing with this provider layer.
+        configurations for testing with this platform layer.
 
         """
         return self.private.get_test_overlay()

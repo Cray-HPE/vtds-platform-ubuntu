@@ -47,7 +47,7 @@ class LayerAPI:
         platform_config = config.get('platform', None)
         if platform_config is None:
             raise ContextualError(
-                "no provider configuration found in top level configuration"
+                "no platform configuration found in top level configuration"
             )
         self.private = PrivatePlatform(stack, platform_config, build_dir)
 

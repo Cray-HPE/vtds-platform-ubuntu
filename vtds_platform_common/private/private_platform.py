@@ -20,7 +20,7 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-"""Private layer implementation module for the GCP provider.
+"""Private layer implementation module for the GCP platform.
 
 """
 
@@ -48,21 +48,23 @@ class PrivatePlatform:
     def prepare(self):
         """Prepare operation. This drives creation of the platform
         layer definition and any configuration that need to be driven
-        down into the provider layer to be ready for deployment.
+        down into the platform layer to be ready for deployment.
 
         """
         self.prepared = True
+        print("Preparing vtds-platform-common")
 
     def validate(self):
         """Run the terragrunt plan operation on a prepared common
-        provider layer to make sure that the configuration produces a
+        platform layer to make sure that the configuration produces a
         useful result.
 
         """
         if not self.prepared:
             raise ContextualError(
-                "cannot validate an unprepared provider, call prepare() first"
+                "cannot validate an unprepared platform, call prepare() first"
             )
+        print("Validating vtds-platform-common")
 
     def deploy(self):
         """Deploy operation. This drives the deployment of platform
@@ -72,8 +74,9 @@ class PrivatePlatform:
         """
         if not self.prepared:
             raise ContextualError(
-                "cannot deploy an unprepared provider, call prepare() first"
+                "cannot deploy an unprepared platform, call prepare() first"
             )
+        print("Deploying vtds-platform-common")
 
     def remove(self):
         """Remove operation. This will remove all resources
@@ -82,5 +85,6 @@ class PrivatePlatform:
         """
         if not self.prepared:
             raise ContextualError(
-                "cannot deploy an unprepared provider, call prepare() first"
+                "cannot deploy an unprepared platform, call prepare() first"
             )
+        print("Removing vtds-platform-common")
