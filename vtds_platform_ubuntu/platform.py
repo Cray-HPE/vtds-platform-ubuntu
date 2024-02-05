@@ -20,7 +20,7 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-"""Public API module for the common platform layer, this gives callers
+"""Public API module for the ubuntu platform layer, this gives callers
 access to the Platform API and prevents them from seeing the private
 implementation of the API.
 

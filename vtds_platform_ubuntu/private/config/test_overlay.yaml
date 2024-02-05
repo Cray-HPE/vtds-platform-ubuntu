@@ -1,5 +1,5 @@
 platform:
   source:
     index_url: "https://artifactory.algol60.net/artifactory/csm-python-modules/simple"
-    package: vtds-platform-common
+    package: vtds-platform-ubuntu
     version: "latest"

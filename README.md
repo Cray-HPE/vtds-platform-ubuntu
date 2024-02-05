@@ -1,6 +1,6 @@
-# vtds-platform-common
+# vtds-platform-ubuntu
 
-The common platform layer implementation for vTDS.
+The ubuntu platform layer implementation for vTDS.
 
 ## Description
 
