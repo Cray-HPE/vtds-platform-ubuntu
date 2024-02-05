@@ -1,0 +1,6 @@
+platform:
+  nodes: {}
+  networks: {}
+  bmc: {}
+  dhcp_server: {}
+  dns_server: {}

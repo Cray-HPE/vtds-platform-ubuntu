@@ -1,10 +1,11 @@
-# vtds-platform-common
+# vtds-platform-ubuntu
 
-The common platform layer implementation for vTDS allowing a vTDS cluster
-to be built as a GCP project.
+The ubuntu platform layer implementation for vTDS.
 
-## Description This repo provides the code and a base configuration to
-deploy the pplatform layer of a Virtual Test and Development System (vTDS) cluster
+## Description
+
+This repo provides the code and a base configuration to deploy the
+platform layer of a Virtual Test and Development System (vTDS) cluster
 
 Each platform implementation contains implementation specific code and
 a fully defined base configuration capable of deploying the platform
@@ -17,4 +18,3 @@ provider's IP interconnect.
 The core driver mechanism and a brief introduction to the vTDS
 architecture and concepts can be found in the [vTDS Core Project
 Repository](https://github.com/Cray-HPE/vtds-core/tree/main).
-

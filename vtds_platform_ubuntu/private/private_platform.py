@@ -20,7 +20,7 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-"""Private layer implementation module for the GCP platform.
+"""Private layer implementation module for the ubuntu platform.
 
 """
 
@@ -30,7 +30,7 @@ from vtds_base import (
 
 
 class PrivatePlatform:
-    """PrivatePlatform class, implements the common platform layer
+    """PrivatePlatform class, implements the ubuntu platform layer
     accessed through the python Platform API.
 
     """
@@ -52,10 +52,10 @@ class PrivatePlatform:
 
         """
         self.prepared = True
-        print("Preparing vtds-platform-common")
+        print("Preparing vtds-platform-ubuntu")
 
     def validate(self):
-        """Run the terragrunt plan operation on a prepared common
+        """Run the terragrunt plan operation on a prepared ubuntu
         platform layer to make sure that the configuration produces a
         useful result.
 
@@ -64,7 +64,7 @@ class PrivatePlatform:
             raise ContextualError(
                 "cannot validate an unprepared platform, call prepare() first"
             )
-        print("Validating vtds-platform-common")
+        print("Validating vtds-platform-ubuntu")
 
     def deploy(self):
         """Deploy operation. This drives the deployment of platform
@@ -76,7 +76,7 @@ class PrivatePlatform:
             raise ContextualError(
                 "cannot deploy an unprepared platform, call prepare() first"
             )
-        print("Deploying vtds-platform-common")
+        print("Deploying vtds-platform-ubuntu")
 
     def remove(self):
         """Remove operation. This will remove all resources
@@ -87,4 +87,4 @@ class PrivatePlatform:
             raise ContextualError(
                 "cannot deploy an unprepared platform, call prepare() first"
             )
-        print("Removing vtds-platform-common")
+        print("Removing vtds-platform-ubuntu")
