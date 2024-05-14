@@ -245,8 +245,6 @@ def setup_packages(packages, blade_class):
     blade, set them up on the blade as described.
 
     """
-    # The weird list(set(...)) thing here is an easy way to make sure
-    # the repositories are unique within the final list.
     prepare_package_installer()
     preconfigure_packages(
         list_from_packages(
@@ -485,16 +483,31 @@ def main(argv):
     """Main function...
 
     """
+    # Arguments are 'blade_class' the name of the blade class to which
+    # this blade belongs and 'config_path' the path to the
+    # configuration file used for this deployment.
     if not argv:
+        raise UsageError("no arguments provided")
+    if len(argv) < 2:
         raise UsageError("too few arguments")
-    config = read_config(argv[0])
+    if len(argv) > 2:
+        raise UsageError("too many arguments")
+    blade_class = argv[0]
+    config = read_config(argv[1])
     networks = config.get('networks', {})
     packages = config.get('packages', {})
-    blade_class = config.get('blade_class', None)
     setup_packages(packages, blade_class)
     network_installer = NetworkInstaller()
     network_installer.remove_virtual_network("default")
-    for _, network in networks.items():
+    # Only work with networks that are connected to our blade class,
+    # turn the map into a list and filter out any irrelevant networks.
+    networks = [
+        network
+        for key, network in networks.items()
+        if network.get('connected_blade_classes', None) is None
+        or blade_class in network['connected_blade_classes']
+    ]
+    for network in networks:
         network_installer.construct_virtual_network(network)
 
 
@@ -517,19 +530,12 @@ def entrypoint(usage_msg, main_func):
 
 if __name__ == '__main__':
     USAGE_MSG = """
-<<<<<<< HEAD
 usage: deploy_to_blade blade_type config_path
 
 Where:
 
     blade_class is the name of the Virtual Blade class to which this
                 Virtual Blade belongs.
-=======
-usage: prepare_blade config_path
-
-Where:
-
->>>>>>> add blade deploy script
     config_path is the path to a YAML file containing the blade
                 configuration to apply.
 """[1:-1]

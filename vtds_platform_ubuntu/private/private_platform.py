@@ -29,6 +29,8 @@ from yaml import safe_dump
 
 from vtds_base import (
     ContextualError,
+    run,
+    log_paths,
     info_msg
 )
 
@@ -130,36 +132,76 @@ class PrivatePlatform:
         # Open up connections to all of the vTDS Virtual Blades so I can
         # reach SSH (port 22) on each of them to copy in files and run
         # the deployment script.
+        #
+        # PERFORMANCE OPTIMIZATION: this would be faster if the
+        # deployment scripts could run in parallel and be gathered at
+        # the end. Currently they run serially, and use one connection
+        # at a time.
         virtual_blades = self.provider_api.get_virtual_blades()
-        with virtual_blades.ssh_connect_blades() as connections:
-            info_msg(
-                "copying '%s' to all Virtual Blades at "
-                "'/root/blade_config.yaml'" % (
-                    self.blade_config_path
-                )
-            )
-            connections.copy_to(
-                self.blade_config_path, "/root/blade_config.yaml",
-                "upload-platform-config-to"
-            )
-            info_msg(
-                "copying '%s' to all Virtual Blades at '/root/%s'" % (
-                    DEPLOY_SCRIPT_PATH, DEPLOY_SCRIPT_NAME
-                )
-            )
-            connections.copy_to(
-                DEPLOY_SCRIPT_PATH, "/root/%s" % DEPLOY_SCRIPT_NAME,
-                "upload-platform-deploy-script-to"
-            )
-            cmd = (
-                "chmod 755 ./%s;"
-                "python3 ./%s {{ blade_type }} blade_config.yaml" % (
-                    DEPLOY_SCRIPT_NAME,
-                    DEPLOY_SCRIPT_NAME
-                )
-            )
-            info_msg("running '%s' on all Virtual Blades" % cmd)
-            connections.run_command(cmd, "run-platform-deploy-script-on")
+        for blade_type in virtual_blades.blade_types():
+            for instance in range(0, virtual_blades.blade_count(blade_type)):
+                with virtual_blades.connect_blade(
+                        22, blade_type, instance
+                ) as connection:
+                    blade_type = connection.blade_type()
+                    local_ip = connection.local_ip()
+                    port = connection.local_port()
+                    _, private_key_path = virtual_blades.blade_ssh_key_paths(
+                        blade_type
+                    )
+                    options= [
+                        '-o', 'BatchMode=yes',
+                        '-o', 'NoHostAuthenticationForLocalhost=yes',
+                        '-o', 'StrictHostKeyChecking=no',
+                        '-o', 'Port=%s' %str(port),
+                    ]
+                    run(
+                        [
+                            'scp', '-i', private_key_path, *options,
+                            self.blade_config_path,
+                            'root@%s:blade_config.yaml' % local_ip
+                        ],
+                        log_paths(
+                            self.build_dir,
+                            "copy-config-to-%s" % connection.blade_hostname()
+                        )
+                    )
+                    run(
+                        [
+                            'scp', '-i', private_key_path, *options,
+                            DEPLOY_SCRIPT_PATH,
+                            'root@%s:%s' % (local_ip, DEPLOY_SCRIPT_NAME)
+                        ],
+                        log_paths(
+                            self.build_dir,
+                            "copy-deploy-script-to-%s" % (
+                                connection.blade_hostname()
+                            )
+                        )
+                    )
+                    info_msg(
+                        "setting up platform on '%s'" % (
+                            connection.blade_hostname()
+                        )
+                    )
+                    run(
+                        [
+                            'ssh', '-i', private_key_path, *options,
+                            'root@%s' % local_ip,
+                            "chmod 755 ./%s; "
+                            "python3 ./%s %s blade_config.yaml" % (
+                                DEPLOY_SCRIPT_NAME,
+                                DEPLOY_SCRIPT_NAME,
+                                blade_type
+                            )
+                        ],
+                        log_paths(
+                            self.build_dir,
+                            "run-deploy-script-on-%s" % (
+                                connection.blade_hostname()
+                            )
+                        )
+                    )
 
     def remove(self):
         """Remove operation. This will remove all resources
