@@ -22,7 +22,9 @@ platform:
 #     blade_interconect: my-interconnect
 #     # The list of Virtual Blade classes connected by this
 #     # network. All Virtual Blades within each named Virtual Blade Class
-#     # will host a tunnel endpoint on the network.
+#     # will host a tunnel endpoint on the network. If this list is
+#     # missing or null, this network will be connected to all
+#     # Virtual Blades in all Virtual Blade Classes
 #     connected_blade_classes:
 #       - my-blade-class
 #       - my-other-blade-class
@@ -69,7 +71,7 @@ platform:
       packages:
         - bridge-utils
       preconfig_settings: []
-      services_enable:[]
+      services_enable: []
       services_disable: []
     dhcp:
       blade_classes: null
