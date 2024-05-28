@@ -1,6 +1,110 @@
 platform:
-  nodes: {}
   networks: {}
-  bmc: {}
-  dhcp_server: {}
-  dns_server: {}
+    # In an overlay, fill out the Virtual Networks to be defined on
+    # the platform here. The following is an example of what you might
+    # put here. It is kept commented out so that it won't introduce a
+    # network you don't actually want into your configuration.
+
+#   my_network:
+#     # The name of the Virtual Network
+#     network_name: mynet
+#     # The name of the device on which the network's tunnel appears
+#     # on each Virtual Blade
+#     tunnel_name: mynet
+#     # The name of the device on which the network's bridge (used by
+#     # Virtual Nodes) appears on each Virtual Blade
+#     bridge_bridge: br-mynet
+#     # The network tunnel ID of this network, this number must be
+#     # unique for each network in the platform.
+#     tunnel_id: 10
+#     # The name of the Blade Interconnect network underlying this
+#     # Virtual Network
+#     blade_interconect: my-interconnect
+#     # The list of Virtual Blade classes connected by this
+#     # network. All Virtual Blades within each named Virtual Blade Class
+#     # will host a tunnel endpoint on the network. If this list is
+#     # missing or null, this network will be connected to all
+#     # Virtual Blades in all Virtual Blade Classes
+#     connected_blade_classes:
+#       - my-blade-class
+#       - my-other-blade-class
+
+  packages:
+    # You can add to this list of packages that will be installed on
+    # Virtual Blades in an overlay. This is the basic set that will be
+    # installed regardless. By specifying a non-NULL list of Virtual
+    # Blade classes, you can constrain installation of a given package
+    # to only the Virtual Blades that are instances of those
+    # classes. It is not recommended to do this to the packages listed
+    # in the base configuration because those are explicitly used by
+    # the platform layer, but this may be usefull for things used,
+    # perhaps, by a given cluster or application layer.
+    node_virtualization:
+      # List of blade classes where the packages should be
+      # installed. If this is null, then the packages will be
+      # installed everywhere. If this is empty packages will not be
+      # installed anywhere. Otherwise packages will only be installed
+      # on instances of the blade classes in this list.
+      blade_classes: null
+      # List of packages in this category.
+      packages:
+        - libvirt-daemon-system
+        - virtinst
+        - qemu-kvm
+        - libvirt-clients
+        - libguestfs-tools
+        - python3-libvirt
+      # Preconfiguration settings supplied to debconf-set-selections to allow
+      # correct unattended installation of the above packages
+      preconfig_settings: []
+      
+      # List of services provided by these packages that should be
+      # started / enabled after installation.
+      services_enable:
+        - libvirtd
+      # List of services provided by these packages that should be
+      # stopped / disabled after installation to avoid conflicts or
+      # save resources.
+      services_disable: []
+    network_virtualization:
+      blade_classes: null
+      packages:
+        - bridge-utils
+      preconfig_settings: []
+      services_enable: []
+      services_disable: []
+    dhcp:
+      blade_classes: null
+      packages:
+        - kea
+      preconfig_settings:
+        - kea-ctrl-agent kea-ctrl-agent/make_a_choice select configured_random_password
+      services_enable: []
+      # Disable all of the Kea services until someone asks a given
+      # Virtual Blade to provide DHCP so we aren't carrying overhead /
+      # potential conflicts on nodes that aren't serving DHCP.
+      services_disable:
+        - kea-dhcp4-server
+        - kea-dhcp6-server
+        - kea-dhcp-ddns-server
+        - kea-ctrl-agent
+    python:
+      blade_classes: null
+      packages:
+        - python3
+        - python3-pip
+        - python3-venv
+      preconfig_settings: []
+      services_enable: []
+      services_disable: []
+    miscelaneous_tools:
+      blade_classes: null
+      packages:
+        - iputils-ping
+        - dnsutils
+        - emacs
+        - vim
+      preconfig_settings:
+        - postfix postfix/main_mailer_type select No configuration
+      services_enable: []
+      services_disable: []

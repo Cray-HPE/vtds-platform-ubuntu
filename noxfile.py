@@ -46,6 +46,7 @@ def lint(session):
     run_cmd = [
         'pylint',
         'vtds_platform_ubuntu',
+        'vtds_platform_ubuntu/private/scripts',
     ]
     if session.python:
         session.install(EXTRA_INDEX, '.[lint]')
@@ -61,6 +62,7 @@ def style(session):
         'pycodestyle',
         '--config=.pycodestyle',
         'vtds_platform_ubuntu',
+        'vtds_platform_ubuntu/private/scripts',
     ]
  
     if session.python:

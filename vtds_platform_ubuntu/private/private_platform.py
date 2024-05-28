@@ -24,8 +24,17 @@
 
 """
 
+from os.path import join as path_join
+from yaml import safe_dump
+
 from vtds_base import (
     ContextualError,
+    info_msg
+)
+
+from . import (
+    DEPLOY_SCRIPT_PATH,
+    DEPLOY_SCRIPT_NAME
 )
 
 
@@ -42,8 +51,43 @@ class PrivatePlatform:
         """
         self.config = config
         self.stack = stack
+        self.provider_api = None
         self.build_dir = build_dir
+        self.blade_config_path = path_join(
+            self.build_dir, 'blade_config.yaml'
+        )
         self.prepared = False
+
+    def __add_endpoint_ips(self, network):
+        """Go through the list of connected blade classes for a
+        network and use the list of endpoint IPs represented by all of
+        the blades in each of those classes to compose a comprehensive
+        list of endpoint IPs for the overlay network we are going to
+        build for the network. Add that list under the 'endpoint_ips'
+        key in the network and return the modified network to the
+        caller.
+
+        """
+        virtual_blades = self.provider_api.get_virtual_blades()
+        try:
+            interconnect = network['blade_interconnect']
+        except KeyError as err:
+            raise ContextualError(
+                "network configuration '%s' does not specify "
+                "'blade_interconnect'" % str(network)
+            ) from err
+        blade_classes = network.get('connected_blade_classes', None)
+        blade_classes = (
+            virtual_blades.blade_types()
+            if blade_classes is None
+            else blade_classes
+        )
+        network['endpoint_ips'] = [
+            virtual_blades.blade_ip(blade_class, instance, interconnect)
+            for blade_class in blade_classes
+            for instance in range(0, virtual_blades.blade_count(blade_class))
+        ]
+        return network
 
     def prepare(self):
         """Prepare operation. This drives creation of the platform
@@ -51,8 +95,16 @@ class PrivatePlatform:
         down into the platform layer to be ready for deployment.
 
         """
+        self.provider_api = self.stack.get_provider_api()
+        blade_config = self.config
+        networks = self.config.get('networks', {})
+        blade_config['networks'] = {
+            key: self.__add_endpoint_ips(network)
+            for key, network in networks.items()
+        }
+        with open(self.blade_config_path, 'w', encoding='UTF-8') as conf:
+            safe_dump(blade_config, stream=conf)
         self.prepared = True
-        print("Preparing vtds-platform-ubuntu")
 
     def validate(self):
         """Run the terragrunt plan operation on a prepared ubuntu
@@ -64,7 +116,6 @@ class PrivatePlatform:
             raise ContextualError(
                 "cannot validate an unprepared platform, call prepare() first"
             )
-        print("Validating vtds-platform-ubuntu")
 
     def deploy(self):
         """Deploy operation. This drives the deployment of platform
@@ -76,7 +127,39 @@ class PrivatePlatform:
             raise ContextualError(
                 "cannot deploy an unprepared platform, call prepare() first"
             )
-        print("Deploying vtds-platform-ubuntu")
+        # Open up connections to all of the vTDS Virtual Blades so I can
+        # reach SSH (port 22) on each of them to copy in files and run
+        # the deployment script.
+        virtual_blades = self.provider_api.get_virtual_blades()
+        with virtual_blades.ssh_connect_blades() as connections:
+            info_msg(
+                "copying '%s' to all Virtual Blades at "
+                "'/root/blade_config.yaml'" % (
+                    self.blade_config_path
+                )
+            )
+            connections.copy_to(
+                self.blade_config_path, "/root/blade_config.yaml",
+                "upload-platform-config-to"
+            )
+            info_msg(
+                "copying '%s' to all Virtual Blades at '/root/%s'" % (
+                    DEPLOY_SCRIPT_PATH, DEPLOY_SCRIPT_NAME
+                )
+            )
+            connections.copy_to(
+                DEPLOY_SCRIPT_PATH, "/root/%s" % DEPLOY_SCRIPT_NAME,
+                "upload-platform-deploy-script-to"
+            )
+            cmd = (
+                "chmod 755 ./%s;"
+                "python3 ./%s {{ blade_type }} blade_config.yaml" % (
+                    DEPLOY_SCRIPT_NAME,
+                    DEPLOY_SCRIPT_NAME
+                )
+            )
+            info_msg("running '%s' on all Virtual Blades" % cmd)
+            connections.run_command(cmd, "run-platform-deploy-script-on")
 
     def remove(self):
         """Remove operation. This will remove all resources
@@ -87,4 +170,3 @@ class PrivatePlatform:
             raise ContextualError(
                 "cannot deploy an unprepared platform, call prepare() first"
             )
-        print("Removing vtds-platform-ubuntu")
