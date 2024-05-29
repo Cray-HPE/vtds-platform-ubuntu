@@ -58,37 +58,6 @@ class PrivatePlatform:
         )
         self.prepared = False
 
-    def __add_endpoint_ips(self, network):
-        """Go through the list of connected blade classes for a
-        network and use the list of endpoint IPs represented by all of
-        the blades in each of those classes to compose a comprehensive
-        list of endpoint IPs for the overlay network we are going to
-        build for the network. Add that list under the 'endpoint_ips'
-        key in the network and return the modified network to the
-        caller.
-
-        """
-        virtual_blades = self.provider_api.get_virtual_blades()
-        try:
-            interconnect = network['blade_interconnect']
-        except KeyError as err:
-            raise ContextualError(
-                "network configuration '%s' does not specify "
-                "'blade_interconnect'" % str(network)
-            ) from err
-        blade_classes = network.get('connected_blade_classes', None)
-        blade_classes = (
-            virtual_blades.blade_types()
-            if blade_classes is None
-            else blade_classes
-        )
-        network['endpoint_ips'] = [
-            virtual_blades.blade_ip(blade_class, instance, interconnect)
-            for blade_class in blade_classes
-            for instance in range(0, virtual_blades.blade_count(blade_class))
-        ]
-        return network
-
     def prepare(self):
         """Prepare operation. This drives creation of the platform
         layer definition and any configuration that need to be driven
@@ -97,11 +66,6 @@ class PrivatePlatform:
         """
         self.provider_api = self.stack.get_provider_api()
         blade_config = self.config
-        networks = self.config.get('networks', {})
-        blade_config['networks'] = {
-            key: self.__add_endpoint_ips(network)
-            for key, network in networks.items()
-        }
         with open(self.blade_config_path, 'w', encoding='UTF-8') as conf:
             safe_dump(blade_config, stream=conf)
         self.prepared = True
@@ -134,12 +98,12 @@ class PrivatePlatform:
         with virtual_blades.ssh_connect_blades() as connections:
             info_msg(
                 "copying '%s' to all Virtual Blades at "
-                "'/root/blade_config.yaml'" % (
+                "'/root/blade_platform_config.yaml'" % (
                     self.blade_config_path
                 )
             )
             connections.copy_to(
-                self.blade_config_path, "/root/blade_config.yaml",
+                self.blade_config_path, "/root/blade_platform_config.yaml",
                 "upload-platform-config-to"
             )
             info_msg(
@@ -168,5 +132,5 @@ class PrivatePlatform:
         """
         if not self.prepared:
             raise ContextualError(
-                "cannot deploy an unprepared platform, call prepare() first"
+                "cannot remove an unprepared platform, call prepare() first"
             )

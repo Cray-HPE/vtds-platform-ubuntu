@@ -1,34 +1,4 @@
 platform:
-  networks: {}
-    # In an overlay, fill out the Virtual Networks to be defined on
-    # the platform here. The following is an example of what you might
-    # put here. It is kept commented out so that it won't introduce a
-    # network you don't actually want into your configuration.
-
-#   my_network:
-#     # The name of the Virtual Network
-#     network_name: mynet
-#     # The name of the device on which the network's tunnel appears
-#     # on each Virtual Blade
-#     tunnel_name: mynet
-#     # The name of the device on which the network's bridge (used by
-#     # Virtual Nodes) appears on each Virtual Blade
-#     bridge_bridge: br-mynet
-#     # The network tunnel ID of this network, this number must be
-#     # unique for each network in the platform.
-#     tunnel_id: 10
-#     # The name of the Blade Interconnect network underlying this
-#     # Virtual Network
-#     blade_interconect: my-interconnect
-#     # The list of Virtual Blade classes connected by this
-#     # network. All Virtual Blades within each named Virtual Blade Class
-#     # will host a tunnel endpoint on the network. If this list is
-#     # missing or null, this network will be connected to all
-#     # Virtual Blades in all Virtual Blade Classes
-#     connected_blade_classes:
-#       - my-blade-class
-#       - my-other-blade-class
-
   packages:
     # You can add to this list of packages that will be installed on
     # Virtual Blades in an overlay. This is the basic set that will be

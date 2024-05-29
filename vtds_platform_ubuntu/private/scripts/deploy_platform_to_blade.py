@@ -32,14 +32,11 @@ argument on the command line.
 import sys
 from subprocess import (
     Popen,
-    TimeoutExpired,
-    PIPE
+    TimeoutExpired
 )
 from tempfile import (
-    TemporaryFile,
-    NamedTemporaryFile,
+    TemporaryFile
 )
-import json
 import yaml
 
 
@@ -266,219 +263,6 @@ def setup_packages(packages, blade_class):
     )
 
 
-class NetworkInstaller:
-    """A class to handle declarative creation of virtual networks on a
-    blade.
-
-    """
-    @staticmethod
-    def _get_interfaces():
-        """Retrieve information about existing interfaces structured for
-        easy inspection to determine what is already in place.
-
-        """
-        with Popen(
-                ["ip", "-d", "--json", "addr"],
-                stdout=PIPE,
-                stderr=PIPE
-        ) as cmd:
-            if_data = json.loads(cmd.stdout.read())
-        with Popen(
-                ["bridge", "--json", "fdb"],
-                stdout=PIPE,
-                stderr=PIPE
-        ) as cmd:
-            fdb_data = json.loads(cmd.stdout.read())
-        interfaces = {iface['ifname']: iface for iface in if_data}
-        dsts = [fdb_entry for fdb_entry in fdb_data if 'dst' in fdb_entry]
-        for dst in dsts:
-            if 'dst' in dst:
-                iface = interfaces[dst['ifname']]
-                iface['fdb_dsts'] = (
-                    [dst['dst']] if 'fdb_dsts' not in iface else
-                    iface['fdb_dsts'] + [dst['dst']]
-                )
-        return interfaces
-
-    @staticmethod
-    def _get_virtual_networks():
-        """Retrieve information about existing interfaces structured for
-        easy inspection to determine what is already in place.
-
-        """
-        with Popen(
-                ["virsh", "net-list", "--name"],
-                stdout=PIPE,
-                stderr=PIPE
-        ) as cmd:
-            vnets = [
-                line[:-1].decode('UTF-8') for line in cmd.stdout.readlines()
-                if line[:-1].decode('UTF-8')
-            ]
-        return vnets
-
-    def __init__(self):
-        """Constructor
-
-        """
-        self.interfaces = self._get_interfaces()
-        self.vxlans = {
-            key: val for key, val in self.interfaces.items()
-            if 'linkinfo' in val and val['linkinfo']['info_kind'] == 'vxlan'
-        }
-        self.bridges = {
-            key: val for key, val in self.interfaces.items()
-            if 'linkinfo' in val and val['linkinfo']['info_kind'] == 'bridge'
-        }
-        self.vnets = self._get_virtual_networks()
-
-    def _check_conflict(self, name, bridge_name):
-        """Look for conflicting existing interfaces for the named
-        tunnel and bridge and error if they are found.
-
-        """
-        if name in self.interfaces and name not in self.vxlans:
-            raise ContextualError(
-                "attempting to create virtual network '%s' but conflicting "
-                "non-virtual network interface already exists on blade" % name
-            )
-        if bridge_name in self.interfaces and bridge_name not in self.bridges:
-            raise ContextualError(
-                "attempting to create bridge for virtual network '%s' [%s] "
-                "but conflicting non-bridge network interface already "
-                "exists on blade" % (name, bridge_name)
-            )
-
-    def _find_underlay(self, endpoint_ips):
-        """All virtual networks have a tunnel endpoint on the blades
-        where they are used, so they all have a network device used as
-        the point of access to the underlay network which determines
-        that tunnel endpoint. This function finds the device and
-        endpoint IP on the current blade that will be used to connect
-        to the virtual network.
-
-        """
-        for intf, if_desc in self.interfaces.items():
-            addr_info = if_desc.get('addr_info', [])
-            for info in addr_info:
-                if 'local' in info and info['local'] in endpoint_ips:
-                    return (intf, info['local'])
-        raise ContextualError(
-            "no network device was found with an IP address matching any of "
-            "the following endpoint IPs: %s" % (str(endpoint_ips))
-        )
-
-    @staticmethod
-    def remove_link(if_name):
-        """Remove an interface (link) specified by the interface name.
-
-        """
-        run_cmd("ip", ["link", "del", if_name])
-
-    @staticmethod
-    def add_new_tunnel(tunnel_name, bridge_name, vxlan_id, device):
-        """Set up a VxLAN tunnel ingress using the supplied VxLAN ID,
-        and set up the bridge interface mastering the tunnel onto
-        which IPs and VMs can be bound.
-
-        """
-        # Make the Tunnel Endpoint
-        run_cmd(
-            "ip",
-            [
-                "link", "add", tunnel_name,
-                "type", "vxlan",
-                "id", vxlan_id,
-                "dev", device,
-                "dstport", "0",
-            ]
-        )
-        # Make the bridge device
-        run_cmd(
-            "ip",
-            ["link", "add", bridge_name, "type", "bridge"]
-        )
-        # Master the tunnel under the bridge
-        run_cmd(
-            "ip",
-            ["link", "set", tunnel_name, "master", bridge_name]
-        )
-
-    @staticmethod
-    def connect_endpoints(tunnel_name, endpoint_ips, local_ip_addr):
-        """Create the static mesh interconnect between tunnel
-        endpoints (blades) for the named network.
-
-        """
-        remote_ips = [
-            ip_addr for ip_addr in endpoint_ips
-            if ip_addr != local_ip_addr
-        ]
-        for ip_addr in remote_ips:
-            run_cmd(
-                "bridge",
-                [
-                    "fdb", "append", "to", "00:00:00:00:00:00",
-                    "dst", ip_addr,
-                    "dev", tunnel_name,
-                ],
-            )
-
-    def add_virtual_network(self, network_name, bridge_name):
-        """Add a network to libvirt that is bound onto the bridge that
-        is mastering the tunnel for that network.
-
-        """
-        net_desc = """
-<network>
-  <name>%s</name>
-  <forward mode="bridge" />
-  <bridge name="%s" />
-</network>
-        """ % (network_name, bridge_name)
-
-        with NamedTemporaryFile(mode='w+', encoding='UTF-8') as tmpfile:
-            tmpfile.write(net_desc)
-            tmpfile.flush()
-            run_cmd("virsh", ["net-define", tmpfile.name])
-        run_cmd("virsh", ["net-start", network_name])
-        run_cmd("virsh", ["net-autostart", network_name])
-        self.vnets.append(network_name)
-
-    def remove_virtual_network(self, network_name):
-        """Remove a network from libvirt
-
-        """
-        if network_name not in self.vnets:
-            # Don't remove it if it isn't there
-            return
-        run_cmd("virsh", ["net-destroy", network_name])
-        run_cmd("virsh", ["net-undefine", network_name])
-        self.vnets.remove(network_name)
-
-    def construct_virtual_network(self, config):
-        """Create a VxLAN tunnel and bridge for a virtual network,
-        populate its layer2 mesh (among the blades where it can be
-        seen) and add it to the libvirt list of networks on the blade.
-
-        """
-        network_name = config.get('network_name', "")
-        tunnel_name = config.get('tunnel_name', network_name)
-        bridge_name = config.get('bridge_name', "br-%s" % tunnel_name)
-        vxlan_id = str(config.get('tunnel_id', "0"))
-        endpoint_ips = config.get('endpoint_ips', [])
-        self._check_conflict(tunnel_name, bridge_name)
-        if tunnel_name in self.interfaces:
-            self.remove_link(tunnel_name)
-        if bridge_name in self.interfaces:
-            self.remove_link(bridge_name)
-        device, local_ip_addr = self._find_underlay(endpoint_ips)
-        self.add_new_tunnel(tunnel_name, bridge_name, vxlan_id, device)
-        self.connect_endpoints(tunnel_name, endpoint_ips, local_ip_addr)
-        self.remove_virtual_network(network_name)
-        self.add_virtual_network(network_name, bridge_name)
-
-
 def main(argv):
     """Main function...
 
@@ -494,21 +278,8 @@ def main(argv):
         raise UsageError("too many arguments")
     blade_class = argv[0]
     config = read_config(argv[1])
-    networks = config.get('networks', {})
     packages = config.get('packages', {})
     setup_packages(packages, blade_class)
-    network_installer = NetworkInstaller()
-    network_installer.remove_virtual_network("default")
-    # Only work with networks that are connected to our blade class,
-    # turn the map into a list and filter out any irrelevant networks.
-    networks = [
-        network
-        for key, network in networks.items()
-        if network.get('connected_blade_classes', None) is None
-        or blade_class in network['connected_blade_classes']
-    ]
-    for network in networks:
-        network_installer.construct_virtual_network(network)
 
 
 def entrypoint(usage_msg, main_func):
