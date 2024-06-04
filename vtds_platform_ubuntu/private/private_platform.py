@@ -54,7 +54,7 @@ class PrivatePlatform:
         self.provider_api = None
         self.build_dir = build_dir
         self.blade_config_path = path_join(
-            self.build_dir, 'blade_config.yaml'
+            self.build_dir, 'blade_platform_config.yaml'
         )
         self.prepared = False
 
@@ -117,7 +117,7 @@ class PrivatePlatform:
             )
             cmd = (
                 "chmod 755 ./%s;"
-                "python3 ./%s {{ blade_type }} blade_config.yaml" % (
+                "python3 ./%s {{ blade_type }} blade_platform_config.yaml" % (
                     DEPLOY_SCRIPT_NAME,
                     DEPLOY_SCRIPT_NAME
                 )

@@ -177,6 +177,7 @@ def prepare_package_installer():
     """
     run_cmd("apt", ["update"])
     run_cmd("apt", ["upgrade", "-y"])
+    run_cmd("apt", ["install", "-y", "apt-utils"])
 
 
 def preconfigure_packages(settings):
