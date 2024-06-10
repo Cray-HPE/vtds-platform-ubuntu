@@ -29,7 +29,7 @@ from os.path import (
     dirname
 )
 CONFIG_DIR = path_join(dirname(__file__), "config")
-DEPLOY_SCRIPT_NAME = "deploy_to_blade.py"
+DEPLOY_SCRIPT_NAME = "deploy_platform_to_blade.py"
 DEPLOY_SCRIPT_PATH = path_join(
     dirname(__file__),
     "scripts",
