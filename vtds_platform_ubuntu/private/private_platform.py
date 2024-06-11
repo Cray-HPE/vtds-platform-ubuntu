@@ -104,7 +104,7 @@ class PrivatePlatform:
             )
             connections.copy_to(
                 self.blade_config_path, "/root/blade_platform_config.yaml",
-                "upload-platform-config-to"
+                False, "upload-platform-config-to"
             )
             info_msg(
                 "copying '%s' to all Virtual Blades at '/root/%s'" % (
@@ -113,7 +113,7 @@ class PrivatePlatform:
             )
             connections.copy_to(
                 DEPLOY_SCRIPT_PATH, "/root/%s" % DEPLOY_SCRIPT_NAME,
-                "upload-platform-deploy-script-to"
+                False, "upload-platform-deploy-script-to"
             )
             cmd = (
                 "chmod 755 ./%s;"
