@@ -102,7 +102,7 @@ def info_msg(msg):
     write_err("INFO: %s\n" % msg)
 
 
-def run_cmd(cmd, args, stdin=sys.stdin, timeout=None):
+def run_cmd(cmd, args, stdin=sys.stdin, timeout=None, check=True):
     """Run a command with output on stdout and errors on stderr
 
     """
@@ -145,12 +145,13 @@ def run_cmd(cmd, args, stdin=sys.stdin, timeout=None):
                 str(err)
             )
         ) from err
-    if exitval != 0:
+    if exitval != 0 and check:
         fmt = (
             "command '%s' failed" if not signaled
             else "command '%s' timed out and was killed"
         )
         raise ContextualError(fmt % " ".join([cmd, *args]))
+    return exitval
 
 
 def read_config(config_file):
@@ -177,7 +178,10 @@ def prepare_package_installer():
     """
     run_cmd("apt", ["update"])
     run_cmd("apt", ["upgrade", "-y"])
-    run_cmd("apt", ["install", "-y", "apt-utils"])
+    # For some reason I got a failure when this wasn't done even though
+    # it shouldn't need to be done. Sticking it in without checking its
+    # result just in case.
+    run_cmd("apt", ["install", "-y", "apt-utils", "apt"], check=False)
 
 
 def preconfigure_packages(settings):
