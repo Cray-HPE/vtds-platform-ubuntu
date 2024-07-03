@@ -117,7 +117,7 @@ class PrivatePlatform:
             )
             cmd = (
                 "chmod 755 ./%s;"
-                "python3 ./%s {{ blade_type }} blade_platform_config.yaml" % (
+                "python3 ./%s {{ blade_class }} blade_platform_config.yaml" % (
                     DEPLOY_SCRIPT_NAME,
                     DEPLOY_SCRIPT_NAME
                 )

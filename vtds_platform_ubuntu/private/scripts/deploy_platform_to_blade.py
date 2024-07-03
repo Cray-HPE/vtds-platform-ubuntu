@@ -306,7 +306,7 @@ def entrypoint(usage_msg, main_func):
 
 if __name__ == '__main__':
     USAGE_MSG = """
-usage: deploy_to_blade blade_type config_path
+usage: deploy_to_blade blade_class config_path
 
 Where:
 
