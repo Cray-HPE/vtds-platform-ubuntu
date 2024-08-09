@@ -23,5 +23,5 @@
 """Init
 
 """
-from .base_config import BaseConfig
-from .platform import LayerAPI
+from .private.config import BaseConfig
+from .private.platform import Platform as LayerAPI

@@ -23,7 +23,6 @@
 """Private layer implementation module for the ubuntu platform.
 
 """
-
 from os.path import join as path_join
 from yaml import safe_dump
 
@@ -31,6 +30,7 @@ from vtds_base import (
     ContextualError,
     info_msg
 )
+from vtds_base.layers.platform import PlatformAPI
 
 from . import (
     DEPLOY_SCRIPT_PATH,
@@ -38,7 +38,7 @@ from . import (
 )
 
 
-class PrivatePlatform:
+class Platform(PlatformAPI):
     """PrivatePlatform class, implements the ubuntu platform layer
     accessed through the python Platform API.
 
@@ -49,7 +49,11 @@ class PrivatePlatform:
         caller that will drive all activities at all layers.
 
         """
-        self.config = config
+        self.config = config.get('platform', None)
+        if self.config is None:
+            raise ContextualError(
+                "no platform configuration found in top level configuration"
+            )
         self.stack = stack
         self.provider_api = None
         self.build_dir = build_dir
