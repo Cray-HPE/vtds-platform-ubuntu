@@ -49,6 +49,7 @@ class Platform(PlatformAPI):
         caller that will drive all activities at all layers.
 
         """
+        self.__doc__ = PlatformAPI.__doc__
         self.config = config.get('platform', None)
         if self.config is None:
             raise ContextualError(
@@ -63,11 +64,6 @@ class Platform(PlatformAPI):
         self.prepared = False
 
     def prepare(self):
-        """Prepare operation. This drives creation of the platform
-        layer definition and any configuration that need to be driven
-        down into the platform layer to be ready for deployment.
-
-        """
         self.provider_api = self.stack.get_provider_api()
         blade_config = self.config
         with open(self.blade_config_path, 'w', encoding='UTF-8') as conf:
@@ -75,22 +71,12 @@ class Platform(PlatformAPI):
         self.prepared = True
 
     def validate(self):
-        """Run the terragrunt plan operation on a prepared ubuntu
-        platform layer to make sure that the configuration produces a
-        useful result.
-
-        """
         if not self.prepared:
             raise ContextualError(
                 "cannot validate an unprepared platform, call prepare() first"
             )
 
     def deploy(self):
-        """Deploy operation. This drives the deployment of platform
-        layer resources based on the layer definition. It can only be
-        called after the prepare operation (prepare()) completes.
-
-        """
         if not self.prepared:
             raise ContextualError(
                 "cannot deploy an unprepared platform, call prepare() first"
@@ -130,10 +116,6 @@ class Platform(PlatformAPI):
             connections.run_command(cmd, "run-platform-deploy-script-on")
 
     def remove(self):
-        """Remove operation. This will remove all resources
-        provisioned for the platform layer.
-
-        """
         if not self.prepared:
             raise ContextualError(
                 "cannot remove an unprepared platform, call prepare() first"
