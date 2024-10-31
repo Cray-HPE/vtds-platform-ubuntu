@@ -107,7 +107,8 @@ class Platform(PlatformAPI):
             )
             cmd = (
                 "chmod 755 ./%s;"
-                "python3 ./%s {{ blade_class }} blade_platform_config.yaml" % (
+                "DEBIAN_FRONTEND=noninteractive python3 "
+                "./%s {{ blade_class }} blade_platform_config.yaml" % (
                     DEPLOY_SCRIPT_NAME,
                     DEPLOY_SCRIPT_NAME
                 )
