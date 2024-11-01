@@ -37,6 +37,7 @@ from subprocess import (
 from tempfile import (
     TemporaryFile
 )
+from time import sleep
 import yaml
 
 
@@ -176,8 +177,21 @@ def prepare_package_installer():
     and up to date.
 
     """
-    run_cmd("apt", ["update"])
-    run_cmd("apt", ["upgrade", "-y"])
+    retries = 10
+    while retries > 0:
+        if run_cmd("apt", ["update"], check=False) != 0:
+            sleep(5)
+            info_msg("retrying apt update")
+            retries -= 1
+            continue
+        if run_cmd("apt", ["upgrade", "-y"], check=False) != 0:
+            sleep(5)
+            info_msg("retrying apt upgrade")
+            retries -= 1
+            continue
+        break
+    if retries == 0:
+        raise ContextualError("too many retries in apt update / upgrade")
     # For some reason I got a failure when this wasn't done even though
     # it shouldn't need to be done. Sticking it in without checking its
     # result just in case.
