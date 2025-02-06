@@ -63,8 +63,24 @@ class Platform(PlatformAPI):
         )
         self.prepared = False
 
+    @staticmethod
+    def __clean_deleted_py_modules(python_modules):
+        """Returns a dictionary of python modules that contains only
+        modules for which the 'delete' field is either missing or
+        False.
+
+        """
+        return {
+            key: description for key, description in python_modules.items()
+            if not description.get('delete', False)
+        }
+
     def prepare(self):
         self.provider_api = self.stack.get_provider_api()
+        python_config = self.config.get('python', {})
+        python_config['modules'] = self.__clean_deleted_py_modules(
+            python_config.get('modules', {})
+        )
         blade_config = self.config
         with open(self.blade_config_path, 'w', encoding='UTF-8') as conf:
             safe_dump(blade_config, stream=conf)
@@ -120,3 +136,14 @@ class Platform(PlatformAPI):
             raise ContextualError(
                 "cannot remove an unprepared platform, call prepare() first"
             )
+
+    def get_blade_venv_path(self):
+        python_config = self.config.get('python', {})
+        return python_config.get('blade_venv_path', "/root/blade-venv")
+
+    def get_blade_python_executable(self):
+        # NOTE: do not use path_join() here to construct the path. The
+        # path here is being constructed for a Linux environment,
+        # where path separators are always '/' and which might not
+        # match the system this code is running on.
+        return "%s/bin/python3" % self.get_blade_venv_path()

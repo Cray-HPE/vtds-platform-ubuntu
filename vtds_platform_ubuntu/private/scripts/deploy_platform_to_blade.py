@@ -30,13 +30,20 @@ argument on the command line.
 
 """
 import sys
+from os import (
+    sep,
+    environ
+)
+from os.path import join as path_join
 from subprocess import (
     Popen,
     TimeoutExpired
 )
 from tempfile import (
-    TemporaryFile
+    TemporaryFile,
+    TemporaryDirectory
 )
+from time import sleep
 import yaml
 
 
@@ -102,7 +109,7 @@ def info_msg(msg):
     write_err("INFO: %s\n" % msg)
 
 
-def run_cmd(cmd, args, stdin=sys.stdin, timeout=None, check=True):
+def run_cmd(cmd, args, stdin=sys.stdin, timeout=None, check=True, **kwargs):
     """Run a command with output on stdout and errors on stderr
 
     """
@@ -110,7 +117,8 @@ def run_cmd(cmd, args, stdin=sys.stdin, timeout=None, check=True):
     try:
         with Popen(
                 [cmd, *args],
-                stdin=stdin, stdout=sys.stdout, stderr=sys.stderr
+                stdin=stdin, stdout=sys.stdout, stderr=sys.stderr,
+                **kwargs
         ) as command:
             time = 0
             signaled = False
@@ -176,12 +184,28 @@ def prepare_package_installer():
     and up to date.
 
     """
-    run_cmd("apt", ["update"])
-    run_cmd("apt", ["upgrade", "-y"])
+    env = environ.copy()
+    env['NEEDRESTART_MODE'] = 'a'
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
+    retries = 10
+    while retries > 0:
+        if run_cmd("apt", ["update"], check=False, env=env) != 0:
+            sleep(5)
+            info_msg("retrying apt update")
+            retries -= 1
+            continue
+        if run_cmd("apt", ["upgrade", "-y"], check=False, env=env) != 0:
+            sleep(5)
+            info_msg("retrying apt upgrade")
+            retries -= 1
+            continue
+        break
+    if retries == 0:
+        raise ContextualError("too many retries in apt update / upgrade")
     # For some reason I got a failure when this wasn't done even though
     # it shouldn't need to be done. Sticking it in without checking its
     # result just in case.
-    run_cmd("apt", ["install", "-y", "apt-utils", "apt"], check=False)
+    run_cmd("apt", ["install", "-y", "apt-utils", "apt"], check=False, env=env)
 
 
 def preconfigure_packages(settings):
@@ -209,7 +233,10 @@ def install_packages(packages):
     argument using 'apt install'.
 
     """
-    run_cmd("apt", ["install", "-y", *packages])
+    env = environ.copy()
+    env['NEEDRESTART_MODE'] = 'a'
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
+    run_cmd("apt", ["install", "-y", *packages], env=env)
 
 
 def disable_services(service_names):
@@ -268,6 +295,95 @@ def setup_packages(packages, blade_class):
     )
 
 
+class BladeVENV:
+    """Class for creating and setting up the Blade Python virtual
+    environment that is shared with other layers.
+
+    """
+    def __init__(self, config):
+        """Constructor
+
+        """
+        self.python_conf = config.get('python', {})
+        self.venv_path = self.python_conf.get(
+            'blade_venv_path', path_join(sep, 'root', 'blade-venv')
+        )
+        self.python_binary = path_join(self.venv_path, 'bin', 'python3')
+
+        # This can't be run as the venv python3 because that has not been
+        # created yet, so just use the system python3. We are assuming that
+        # python and python-venv packages have been installed (as set up in
+        # the config) if that is not true, this will fail.
+        run_cmd("python3", ['-m', 'venv', self.venv_path])
+
+    def __pypi_install_py_module(self, module_name, description):
+        """Install a python module from a PyPI style repository based on
+        the location and version found in the descriptio metadata.
+
+        """
+        metadata = description.get('metadata', {})
+        url = metadata.get('url', None)
+        version = metadata.get('version', None)
+        args = ['--index-url', url] if url is not None else []
+        args += (
+            [module_name + version]
+            if version is not None
+            else [module_name]
+        )
+        run_cmd(self.python_binary, ['-m', 'pip', 'install'] + args)
+
+    def __git_install_py_module(self, module_name, description):
+        """Install a python module from a Git repository containing source
+        code for the module based on the Git repository URL and branch or
+        tag version found in the description metadata.
+
+        """
+        metadata = description.get('metadata', {})
+        url = metadata.get('url', None)
+        version = metadata.get('version', None)
+        if url is None:
+            raise ContextualError(
+                "no git repository URL provided for python "
+                "module '%s'" % module_name
+            )
+        with TemporaryDirectory(
+                suffix='-' + module_name
+        ) as tmpdir:
+            run_cmd("git", ['clone', url, tmpdir])
+            if version is not None:
+                run_cmd("git", ['checkout', version], cwd=tmpdir)
+            run_cmd(
+                self.python_binary,
+                ['-m', 'pip', 'install', '-V', '.'], cwd=tmpdir
+            )
+
+    def install_python_modules(self):
+        """Based on the 'python_modules' section of the configuration,
+        install the specified python modules.
+
+        """
+        python_modules = self.python_conf.get('modules', {})
+        for name, description in python_modules.items():
+            module_name = description.get('module_name', None)
+            if module_name is None:
+                raise ContextualError(
+                    "python module description for '%s' [%s] "
+                    "contains no 'module_name' field" % (
+                        name, str(description)
+                    )
+                )
+            source_type = description.get('source_type', 'pypi')
+            if source_type == 'pypi':
+                self.__pypi_install_py_module(module_name, description)
+            elif source_type == 'git':
+                self.__git_install_py_module(module_name, description)
+            else:
+                raise ContextualError(
+                    "unknown python module source type '%s' for "
+                    "python module '%s'" % (source_type, name)
+                )
+
+
 def main(argv):
     """Main function...
 
@@ -285,6 +401,10 @@ def main(argv):
     config = read_config(argv[1])
     packages = config.get('packages', {})
     setup_packages(packages, blade_class)
+    # Set up the blade python virtual environment...
+    venv = BladeVENV(config)
+    venv.install_python_modules()
+    return 0
 
 
 def entrypoint(usage_msg, main_func):

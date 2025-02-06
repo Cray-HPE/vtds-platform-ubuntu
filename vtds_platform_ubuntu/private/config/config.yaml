@@ -61,9 +61,20 @@ platform:
     python:
       blade_classes: null
       packages:
-        - python3
+        - python3.10
+      preconfig_settings: []
+      services_enable: []
+      services_disable: []
+    python_module_installation:
+      # In order to support installing python modules that are listed in
+      # the configuration for Virtual Blades as source type 'git' we
+      # need to have git installed. This applies to all blade types and
+      # will break deployment on some configurations if it is removed.
+      blade_classes: null
+      packages:
         - python3-pip
-        - python3-venv
+        - python3.10-venv
+        - git
       preconfig_settings: []
       services_enable: []
       services_disable: []
@@ -78,3 +89,30 @@ platform:
         - postfix postfix/main_mailer_type select No configuration
       services_enable: []
       services_disable: []
+  python:
+    # Configuration for running python on the virtual blades. The
+    # blade-venv will be shared by any layer deploy scripts that run on
+    # the virtual blade and is retrieved from the platform layer through
+    # its get_blade_venv_path() and get_blade_python_executable()
+    # methods. Set the venv path here. The API methods will use this as
+    # the basis for computing other information.
+    blade_venv_path: /root/blade-venv
+
+    # In addition to installing linux packages, we need to be able to
+    # install python modules that support functionality on the Virtual
+    # Blades. This section shows how that would be set up with an example
+    # that installs a redfish BMC emulator (sushi-tools) on the Virtual
+    # Blades. It is left to the Application layer to set this up and run
+    # it, and if you prefer not to install it, simply override 'delete'
+    # and set it to 'true' and sushy-tools will no longer be installed.
+    modules:
+      sushi-tools:
+        # Install 'sushy-tools' from a public fork on github that supports
+        # referencing VMs by name as well as by UUID. To do this, get it
+        # from the github fork, not from pypi.
+        module_name: sushy-tools
+        delete: false
+        source_type: git
+        metadata:
+          url: "https://github.com/Cray-HPE/sushy-tools-vshasta-v3.git"
+          version: null
