@@ -75,6 +75,9 @@ class Platform(PlatformAPI):
             if not description.get('delete', False)
         }
 
+    def consolidate(self):
+        return
+
     def prepare(self):
         self.provider_api = self.stack.get_provider_api()
         python_config = self.config.get('python', {})
