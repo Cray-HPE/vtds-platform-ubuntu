@@ -22,7 +22,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 [project]
-name = 'vtds-platform-ubuntu'
+name = 'vtds_platform_ubuntu'
 authors = [
     { name = 'Eric Lund', email = 'eric.lund@hpe.com' },
 ]
