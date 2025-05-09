@@ -76,14 +76,13 @@ class Platform(PlatformAPI):
         }
 
     def consolidate(self):
-        return
-
-    def prepare(self):
         self.provider_api = self.stack.get_provider_api()
         python_config = self.config.get('python', {})
         python_config['modules'] = self.__clean_deleted_py_modules(
             python_config.get('modules', {})
         )
+
+    def prepare(self):
         blade_config = self.config
         with open(self.blade_config_path, 'w', encoding='UTF-8') as conf:
             safe_dump(blade_config, stream=conf)
