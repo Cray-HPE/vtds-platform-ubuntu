@@ -47,6 +47,7 @@ platform:
         - libvirt-clients
         - libguestfs-tools
         - python3-libvirt
+        - mkisofs
       # Preconfiguration settings supplied to debconf-set-selections to allow
       # correct unattended installation of the above packages
       preconfig_settings: []
