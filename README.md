@@ -6,7 +6,7 @@ An Ubuntu Linux Virtual Blade based vTDS Platform Layer Implementation.
 
 This Platform Layer Implementation provides the code and
 [base configuration](https://github.com/Cray-HPE/vtds-platform-ubuntu/blob/main/vtds_platform_ubuntu/private/config/config.yaml)
-to configure a set of Ubuntu Linux based virtual nodes for use under
+to configure a set of Ubuntu Linux based Virtual Blades for use under
 vTDS. For more information about configuring this Layer Implementation
 see the annotated base configuration linked above.
 
