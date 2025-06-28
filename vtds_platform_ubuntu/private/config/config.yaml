@@ -48,6 +48,11 @@ platform:
         - libguestfs-tools
         - python3-libvirt
         - mkisofs
+        - libvirt-dev
+        # Apache Utils allows us to have an htpasswd file for
+        # SushyTools to use. This is as good a place as any to
+        # put it.
+        - apache2-utils
       # Preconfiguration settings supplied to debconf-set-selections to allow
       # correct unattended installation of the above packages
       preconfig_settings: []
@@ -139,4 +144,19 @@ platform:
         source_type: git
         metadata:
           url: "https://github.com/Cray-HPE/sushy-tools-vshasta-v3.git"
+          version: With-Libvirt-By-Name
+      libvirt-python:
+        # Install 'libvirt-python' to support Sushy-Tools interactions
+        # with libvirt.
+        module_name: libvirt-python
+        delete: false
+        source_type: pypi
+        metadata:
+          version: null
+      yaml:
+        # Install 'pyyaml' as a dependency for the node deploy scripts.
+        module_name: pyyaml
+        delete: false
+        source_type: pypi
+        metadata:
           version: null
