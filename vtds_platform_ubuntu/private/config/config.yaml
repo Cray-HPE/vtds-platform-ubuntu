@@ -65,6 +65,46 @@ platform:
       # stopped / disabled after installation to avoid conflicts or
       # save resources.
       services_disable: []
+    sushy_emulator_support:
+      # List of blade classes where the packages should be
+      # installed. If this is null, then the packages will be
+      # installed everywhere. If this is empty packages will not be
+      # installed anywhere. Otherwise packages will only be installed
+      # on instances of the blade classes in this list.
+      blade_classes: null
+      # List of packages in this category.
+      packages:
+        # Libvirt-dev is a dependency for building packages that
+        # sushy-emulator depends on.
+        - libvirt-dev
+        # Apache Utils allows us to have an htpasswd file for
+        # SushyTools to use. This is as good a place as any to
+        # put it.
+        - apache2-utils
+        # We front sushy-tools on the blades with nginx to make it more
+        # reliable. Install it disabled for now so that we don't have it
+        # sitting on a port until we have properly configured it and
+        # want it.
+        - nginx
+      # Preconfiguration settings supplied to debconf-set-selections to allow
+      # correct unattended installation of the above packages
+      preconfig_settings: []
+      
+      # List of services provided by these packages that should be
+      # started / enabled after installation.
+      services_enable: []
+      # List of services provided by these packages that should be
+      # stopped / disabled after installation to avoid conflicts or
+      # save resources.
+      services_disable:
+        - nginx
+    network_virtualization:
+      blade_classes: null
+      packages:
+        - bridge-utils
+      preconfig_settings: []
+      services_enable: []
+      services_disable: []
     network_virtualization:
       blade_classes: null
       packages:
