@@ -75,7 +75,7 @@ test = [
     # pytest - this comment reduces conflicts in dependabot PRs
     'pytest>=8.0,<8.5',
     # pytest coverage - this comment reduces conflicts in dependabot PRs
-    'pytest-cov>=4.1,<7.0',
+    'pytest-cov>=4.1,<8.0',
     # coverage - this comment reduces conflicts in dependabot PRs
     'coverage~=7.4',
 ]
